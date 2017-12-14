@@ -4,6 +4,7 @@
 define('U2BE_CURRENT_DIR', getcwd());
 define('U2BE_LIB_DIR', U2BE_CURRENT_DIR . '/lib');
 define('U2BE_CACHE_DIR', U2BE_CURRENT_DIR . '/cache');
+define('U2BE_ALBUMS_DIR', U2BE_CURRENT_DIR . '/albums');
 
 /**
  * Class for u2be
