@@ -1,0 +1,112 @@
+#!/usr/bin/php
+<?php
+
+define('U2BE_CURRENT_DIR', getcwd());
+define('U2BE_LIB_DIR', U2BE_CURRENT_DIR . '/lib');
+define('U2BE_CACHE_DIR', U2BE_CURRENT_DIR . '/cache');
+
+/**
+ * Class for u2be
+ */
+class U2be{
+    var $artists = [];
+    var $albums = [];
+
+    function read(){
+        $__artists = scandir( U2BE_LIB_DIR );
+        array_shift( $__artists);
+        array_shift( $__artists);
+
+        $album_id = 1;
+        foreach ($__artists as $artist_name){
+            $__albums = scandir( U2BE_LIB_DIR . '/' . $artist_name );
+
+            array_shift($__albums);
+            array_shift($__albums);
+
+            $artist = [
+                "name" => $artist_name,
+                "albums" => []
+            ];
+            
+            foreach ($__albums as $album_file){
+                $album = [
+                    "id" => $album_id,
+                    'file' => U2BE_LIB_DIR . '/' . $artist_name . '/' . $album_file,
+                    'name' => str_replace('.json', '', $album_file),
+                    'artist' => $artist_name
+                ];
+
+                $this->albums[$album_id] = $album;
+                $artist['albums'][] = $album;
+            }
+            $this->artists[] = $artist;
+            $album_id++;
+        }
+
+    }
+
+    function showAlbums(){
+        echo "Avialable albums: \n";
+        foreach ($this->albums as $album){
+            echo sprintf('%s. "%s" - "%s"',
+                $album['id'],
+                $album['artist'],
+                $album['name']
+            ) . "\n";
+        }
+    }
+
+    function showAlbumInfo($album_id){
+        if (empty($this->albums[$album_id])){
+            echo "Album [$album_id] not found\n";
+            return;
+        }
+
+        
+        $album = json_decode( file_get_contents( $this->albums[ $album_id ]['file'] ), true);
+        print_r($album);
+    }
+
+    function main($argv){
+        $command1 = empty( $argv[1] ) ? null : $argv[1];
+        $command2 = empty( $argv[2] ) ? null : $argv[2];
+        $command3 = empty( $argv[3] ) ? null : $argv[3];
+
+        $this->read();
+
+        switch ($command1) {
+            case 'show':
+                switch ($command2) {
+                    case 'album':
+                        if ($command3){
+                            $this->showAlbumInfo($command3);
+                        } else {
+                            $this->showAlbums();
+                        }
+                        break;
+                    
+                    default:
+                        $this->showAlbums();
+                        break;
+                }
+                break;
+            case 'get':
+                break;
+            default:
+                # code...
+                $this->showAlbums();
+                break;
+        }
+    }
+
+    function test(){
+        print_r(  );
+    }
+}
+
+$u2be = new U2be();
+$u2be->main($argv);
+
+//$u2be->read();
+//print_r( $u2be->albums );
