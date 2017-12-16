@@ -58,6 +58,10 @@ class U2be{
         }
     }
 
+    function albumExists($album_id){
+        return !empty($this->albums[$album_id]);
+    }
+
     function showAlbumInfo($album_id){
         if (empty($this->albums[$album_id])){
             echo "Album [$album_id] not found\n";
@@ -67,6 +71,71 @@ class U2be{
         
         $album = json_decode( file_get_contents( $this->albums[ $album_id ]['file'] ), true);
         print_r($album);
+    }
+
+    function makePaths(){
+        if (!is_dir(U2BE_CACHE_DIR))
+            mkdir(U2BE_CACHE_DIR, 0777, true);
+        
+        if (!is_dir(U2BE_ALBUMS_DIR))
+            mkdir(U2BE_ALBUMS_DIR, 0777, true);
+    }
+
+    function getAlbum($album_id){
+        if ( !$this->albumExists($album_id) ){
+            echo "Album [$album_id] not found\n";
+            return;
+        }
+        $album = json_decode( file_get_contents( $this->albums[ $album_id ]['file'] ), true);
+        if (empty($album['youtube'])){
+            echo "Youtube URL not found";
+            return;
+        }
+        $album['youtube_url'] = "https://www.youtube.com/watch?v=" . $album['youtube'];
+        $album['cache_dir'] = U2BE_CACHE_DIR . '/' . $album['youtube'];
+        $album['cache_data_json'] = U2BE_CACHE_DIR . '/' . $album['youtube'] . '/data.json';
+        $album['dir'] = U2BE_ALBUMS_DIR . '/' . $album['artist'] . '/' . $album['artist'] . ' ' .$album['year'] . ' ' . $album['album'];
+
+        if (!is_dir( $album['cache_dir'] )){
+            mkdir( $album['cache_dir'], 0777, true );
+        }
+        $this->makePaths();
+        if (!is_dir( $album['dir'] )){
+            mkdir( $album['dir'], 0777, true );
+        }
+
+        
+        $album['cmd'] = sprintf(
+            "cd " . $album['cache_dir'] . '; youtube-dl %s -j', //-x --get-filename --get-thumbnail --skip-download --write-info-json  --write-annotations --write-description',
+            $album['youtube_url']
+
+        );
+
+        if (!file_exists($album['cache_data_json'])){
+            echo "Download video information...\n";
+            exec($album['cmd'], $result);
+            if (empty( $result[0] )){
+                echo "not a json!!";
+                return;
+            }
+            file_put_contents($album['cache_data_json'],  $result[0] );
+        }
+        //extract json
+        
+        $json = json_decode( file_get_contents($album['cache_data_json']), true);
+        $album['_filename'] = $json['_filename'];
+        $album['thumbnail'] = $json['thumbnail'];
+        $album['title'] = $json['title'];
+        $album['cache_opus'] = $album['cache_dir'] . '/' . $album['title'] . '-' . $album['youtube'] . '.opus';
+
+        print_r(compact('album'));
+
+        if (!file_exists($album['cache_opus'])){
+            echo "Download video... {$album['_filename']}";
+            exec("cd " . $album['cache_dir'] . "; youtube-dl --write-thumbnail -w -x " . $album['youtube_url']);
+        }
+
+        echo "\n";        
     }
 
     function main($argv){
@@ -93,6 +162,11 @@ class U2be{
                 }
                 break;
             case 'get':
+                if ($command2){
+                    $this->getAlbum($command2);
+                } else {
+                    $this->showAlbums();
+                }
                 break;
             default:
                 # code...
