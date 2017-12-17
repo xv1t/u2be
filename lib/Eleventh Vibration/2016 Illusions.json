@@ -3,20 +3,5 @@
     "album" : "Illusions",
     "youtube" : "G6YGIgkOJlE",
     "year"  : 2016,
-    "genre" : "Post-rock",
-    "time" : "1:00:14",
-    "cover": "00:00:01",
-    "tracklist": [
-        {"name": "Meridian", "time": "00:00"},
-        {"name": "Nature", "time": "06:19"},
-        {"name": "Black Wood", "time": "11:55"},
-        {"name": "Inside", "time": "18:29"},
-        {"name": "Ritual", "time": "23:37"},
-        {"name": "Whales", "time": "26:24"},
-        {"name": "Exit", "time": "31:49"},
-        {"name": "Love", "time": "37:05"},
-        {"name": "Samsara", "time": "42:23"},
-        {"name": "Vostok", "time": "48:14"},
-        {"name": "Ra", "time": "54:58"} 
-    ]
+    "chapters": true
 }
