@@ -127,15 +127,98 @@ class U2be{
         $album['thumbnail'] = $json['thumbnail'];
         $album['title'] = $json['title'];
         $album['cache_opus'] = $album['cache_dir'] . '/' . $album['title'] . '-' . $album['youtube'] . '.opus';
+        $album['duration'] = $json['duration'];
+        $album['chapters'] = $json['chapters'];
 
-        print_r(compact('album'));
+        /**
+         * ffmpeg \
+         *      -i $src_file
+         *      -ss $START_SECONDS
+         *      -t  $TIME_LENGTH
+         *      -q:a 0 //variable bitrate
+         */
 
+        
         if (!file_exists($album['cache_opus'])){
             echo "Download video... {$album['_filename']}";
             exec("cd " . $album['cache_dir'] . "; youtube-dl --write-thumbnail -w -x " . $album['youtube_url']);
         }
 
+        //cover
+        $album['cache_cover'] = 
+             $album['cache_dir'] . '/' . $album['title'] . '-' . $album['youtube'] . '.jpg';
+
+        if (file_exists($album['cache_cover'])){
+            copy( $album['cache_cover'], $album['dir'] . '/cover.jpg' );
+        }
+        
+        //chapters
+        if ($album['chapters']){
+            $i = 0;
+            //$chapters = count($album['chapters']);
+            echo "Extract tracks: {$album['artist']}/{$album['album']} \n";
+            echo "Artist: {$album['artist']} \n";
+            echo "Album: {$album['album']} \n";
+            echo "Tracks count: " . count($album['chapters']) . " \n";
+
+            foreach ($album['chapters'] as $chapter){
+                $mp3_file = $album['dir'] . '/' . $chapter['title'] . '.mp3';
+
+                $length = $chapter['end_time'] - $chapter['start_time'];
+                $album['chapters'][$i]['length'] = $length;
+                $album['chapters'][$i]['mp3'] = $mp3_file;
+
+                if (file_exists($mp3_file) && 2 == 4){
+                    continue;
+                }
+
+                echo "\n\"{$chapter['title']}\" (track " . ($i+1) . ' of ' . count($album['chapters']) . ')';
+                //               1       2     3    4
+                exec(sprintf('ffmpeg  -loglevel panic  -y -i "%s" -ss %s -t %s -q:a 0 "%s"', 
+                    $album['cache_opus'],
+                    $chapter['start_time'],
+                    $length,
+                    $mp3_file)
+                );
+
+                //id3tag
+                exec(sprintf(
+                    'id3v2 -A "%s" -a "%s" -y "%s" -t "%s" -c "%s" -T %s "%s"',
+                    $album['album'],
+                    $album['artist'],
+                    $album['year'],
+                    $this->extractTitle($chapter['title']),
+                    "Converting from: " . $album['youtube_url'],
+                    $i+1,
+                    $mp3_file
+                ));
+                $i++;
+            }
+        }
+        $album['description'] = $json['description'];
+        
+        //print_r(compact('album'));
+        
         echo "\n";        
+    }
+
+    /**
+     * Remove lead number of track
+     *
+     * @param [type] $title
+     * @return void
+     */
+    function extractTitle($title){
+        for($i = 1; $i < 30; $i++){
+            
+            if (strpos($title, "0$i. ") !== false){
+                return str_replace("0$i. ", '', $title);
+            }
+
+            if (strpos($title, "$i. ") !== false){
+                return str_replace("$i. ", '', $title);
+            }
+        }
     }
 
     function main($argv){
