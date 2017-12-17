@@ -38,6 +38,10 @@ class U2be{
                     'artist' => $artist_name
                 ];
 
+                $album['json'] = json_decode(file_get_contents($album['file']), true);
+                $album['dir'] = U2BE_ALBUMS_DIR . '/' . $album['json']['artist'] . '/' . $album['json']['artist'] . ' ' . $album['json']['year'] . ' ' . $album['json']['album'];
+                $album['dir_exists'] = is_dir($album['dir']);
+
                 $this->albums[$album_id] = $album;
                 $artist['albums'][] = $album;
             }
@@ -47,13 +51,34 @@ class U2be{
 
     }
 
-    function showAlbums(){
+    function showAlbums($filter = 'all'){
         echo "Avialable albums: \n";
         foreach ($this->albums as $album){
-            echo sprintf('%s. "%s" - "%s"',
+            switch ($filter) {
+                case 'all':
+                    # code...
+                    break;
+                case 'done': 
+                    if (!$album['dir_exists']){
+                        continue;
+                    }
+                    break;
+                
+                case 'not_done': 
+                    if ($album['dir_exists']){
+                        continue;
+                    }
+                    break;
+
+                default:
+                    # code...
+                    break;
+            }
+            echo sprintf('%s. "%s" - "%s [%s]"',
                 $album['id'],
                 $album['artist'],
-                $album['name']
+                $album['name'],
+                $album['dir_exists'] ? 'OK' : 'NOT FIND ON DISK'
             ) . "\n";
         }
     }
@@ -126,10 +151,32 @@ class U2be{
         $album['_filename'] = $json['_filename'];
         $album['thumbnail'] = $json['thumbnail'];
         $album['title'] = $json['title'];
-        $album['cache_opus'] = $album['cache_dir'] . '/' . $album['title'] . '-' . $album['youtube'] . '.opus';
-        $album['duration'] = $json['duration'];
-        $album['chapters'] = $json['chapters'];
+        
 
+        exec("youtube-dl  -x --get-filename  " . $album['youtube_url'], $__tmp1);
+
+        $album['cache_opus'] = $album['cache_dir'] . '/' . $__tmp1[0];
+
+        //Check on NON *.opus audio file
+        if (!file_exists( $album['cache_opus'] )){
+            $album['cache_opus'] = $album['cache_dir'] . '/' . $album['title'] . '-' . $album['youtube'] . '.opus';
+        }
+
+        $album['duration'] = $json['duration'];
+
+        if (isset($album['chapters']) && !is_array($album['chapters'])){
+            $album['chapters'] = false;
+        }
+        
+        $album['chapters'] = 
+            empty($album['chapters'])
+            ? $json['chapters']
+            : $album['chapters'];
+
+            if (empty($album['chapters'])){
+                echo "Tracklist/chapters is empty of json options file! " . $this->albums[ $album_id ]['file'];
+                return;
+            }
         /**
          * ffmpeg \
          *      -i $src_file
@@ -142,6 +189,11 @@ class U2be{
         if (!file_exists($album['cache_opus'])){
             echo "Download video... {$album['_filename']}";
             exec("cd " . $album['cache_dir'] . "; youtube-dl --write-thumbnail -w -x " . $album['youtube_url']);
+        }
+
+        if (!file_exists($album['cache_opus'])){
+            echo "Audio track [" . $album['cache_opus'] . "] is not find!\n";
+            return;
         }
 
         //cover
@@ -160,6 +212,13 @@ class U2be{
             echo "Artist: {$album['artist']} \n";
             echo "Album: {$album['album']} \n";
             echo "Tracks count: " . count($album['chapters']) . " \n";
+
+            //write readme
+            file_put_contents($album['dir'] . '/README.txt', join("\n", [
+                    $album['youtube_url'],
+                    '',
+                    $json['description'],
+                ]));
 
             foreach ($album['chapters'] as $chapter){
                 $mp3_file = $album['dir'] . '/' . $chapter['title'] . '.mp3';
@@ -188,10 +247,12 @@ class U2be{
                     $album['artist'],
                     $album['year'],
                     $this->extractTitle($chapter['title']),
-                    "Converting from: " . $album['youtube_url'],
+                    str_replace('https://', '', $album['youtube_url']),
                     $i+1,
                     $mp3_file
                 ));
+
+                
                 $i++;
             }
         }
@@ -214,6 +275,10 @@ class U2be{
             if (strpos($title, "0$i. ") !== false){
                 return str_replace("0$i. ", '', $title);
             }
+            
+            if (strpos($title, "0$i- ") !== false){
+                return str_replace("0$i- ", '', $title);
+            }            
 
             if (strpos($title, "$i. ") !== false){
                 return str_replace("$i. ", '', $title);
@@ -229,6 +294,9 @@ class U2be{
         $this->read();
 
         switch ($command1) {
+            case 'debug': 
+                print_r($this->albums);
+                break;
             case 'show':
                 switch ($command2) {
                     case 'album':
@@ -238,6 +306,14 @@ class U2be{
                             $this->showAlbums();
                         }
                         break;
+                    case 'done': 
+                        $this->showAlbums('done');
+                        break;
+
+                    case 'not_done': 
+                    case 'not': 
+                        $this->showAlbums('not_done');
+                        break;
                     
                     default:
                         $this->showAlbums();
@@ -246,7 +322,14 @@ class U2be{
                 break;
             case 'get':
                 if ($command2){
-                    $this->getAlbum($command2);
+                    if ($command2 === 'all'){
+                        for($i=0; $i<count($this->albums); $i++){
+                            $this->getAlbum($i+1);    
+                        }
+                    } else {
+                        $this->getAlbum($command2);
+                    }
+                    
                 } else {
                     $this->showAlbums();
                 }
