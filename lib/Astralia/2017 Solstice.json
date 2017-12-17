@@ -1,0 +1,42 @@
+{
+    "artist": "Astralia",
+    "album" : "Solstice",
+    "youtube" : "YxkFUnPswh4",
+    "year"  : 2017,
+    "chapters22": [
+        {
+            "start_time": 0.0,
+            "end_time": 197.0,
+            "title": "01. Pelagic"
+        },
+        {
+            "start_time": 197.0,
+            "end_time": 433.0,
+            "title": "02. Nautilus"
+        },
+
+        {
+            "start_time": 433.0,
+            "end_time": 713,
+            "title": "03. Hydra"
+        },
+
+        {
+            "start_time": 713,
+            "end_time": 895.0,
+            "title": "04. Charybdis"
+        },
+
+        {
+            "start_time": 895.0,
+            "end_time": 1099,
+            "title": "05. Currents"
+        },
+
+        {
+            "start_time": 1099,
+            "end_time": 1435,
+            "title": "06. Seadragon"
+        }
+    ]
+}
