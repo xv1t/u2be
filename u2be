@@ -44,9 +44,9 @@ class U2be{
 
                 $this->albums[$album_id] = $album;
                 $artist['albums'][] = $album;
+                $album_id++;
             }
-            $this->artists[] = $artist;
-            $album_id++;
+            $this->artists[] = $artist;            
         }
 
     }
